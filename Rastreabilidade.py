@@ -156,6 +156,9 @@ if numero_remessa:
                 lote = valores_digitados.get(f"lote_{idx}_{numero_remessa}", "")
                 validade = valores_digitados.get(f"validade_{idx}_{numero_remessa}", "")
 
+                if(lote == "S/L" or lote=="-"):
+                    lote=""
+
                 if validade and validade != "S/V":
                     try:
                         # validade vem como string 'MM/YY' ou 'DD/MM/YYYY'
