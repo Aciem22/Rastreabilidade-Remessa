@@ -2,8 +2,11 @@ import streamlit as st
 import requests
 import json
 
-APP_KEY = st.secrets["APP_KEY"]
-APP_SECRET = st.secrets["APP_SECRET"]
+#APP_KEY = st.secrets["APP_KEY"]
+#APP_SECRET = st.secrets["APP_SECRET"]
+
+APP_KEY = "1724630275368"
+APP_SECRET = "549a26b527f429912abf81f18570030e"
 
 def ListarClientes(cnpj_input):
     URL = "https://app.omie.com.br/api/v1/geral/clientes/"
@@ -48,7 +51,7 @@ def ListarRemessas(codigo_cliente):
             "param": [
                 {
                     "nPagina": pagina,
-                    "nRegistrosPorPagina": 100,
+                    "nRegistrosPorPagina": 200,
                     "cExibirDetalhes": "N",
                     "nIdCliente": codigo_cliente
                 }
