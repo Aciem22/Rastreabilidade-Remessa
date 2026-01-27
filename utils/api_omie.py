@@ -9,33 +9,40 @@ APP_KEY = "1724630275368"
 APP_SECRET = "549a26b527f429912abf81f18570030e"
 
 def ListarClientes(cnpj_input):
-    URL = "https://app.omie.com.br/api/v1/geral/clientes/"
-    payload = {
-        "call": "ListarClientes",
-        "app_key": APP_KEY,
-        "app_secret": APP_SECRET,
-        "param": [
-            {
-                "pagina": 1,
-                "registros_por_pagina": 50,
-                "clientesFiltro": {
-                    "cnpj_cpf":cnpj_input
-                },
-                "exibir_obs": "N"
-            }
-        ]
-    }
+    try:
+        URL = "https://app.omie.com.br/api/v1/geral/clientes/"
+        payload = {
+            "call": "ListarClientes",
+            "app_key": APP_KEY,
+            "app_secret": APP_SECRET,
+            "param": [
+                {
+                    "pagina": 1,
+                    "registros_por_pagina": 50,
+                    "clientesFiltro": {
+                        "cnpj_cpf": cnpj_input
+                    },
+                    "exibir_obs": "N"
+                }
+            ]
+        }
 
-    response = requests.post(URL,json=payload)
-    retorno = response.json()
-    
-    clientes = retorno.get("clientes_cadastro",[])
+        response = requests.post(URL, json=payload)
+        retorno = response.json()
 
-    for cliente in clientes:
+        clientes = retorno.get("clientes_cadastro", [])
+
+        if not clientes:
+            return None  # ← ESSENCIAL
+
+        cliente = clientes[0]  # assume o primeiro
         codigo_omie = cliente.get("codigo_cliente_omie")
         razao_social = cliente.get("razao_social")
-        
-    return codigo_omie,razao_social
+
+        return codigo_omie, razao_social
+    
+    except requests.exceptions.RequestException as e:
+        return None
 
 def ListarRemessas(codigo_cliente):
     URL = "https://app.omie.com.br/api/v1/produtos/remessa/"
