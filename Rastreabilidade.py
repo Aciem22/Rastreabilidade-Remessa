@@ -58,6 +58,8 @@ with col1:
     )
 
 with col_bt:
+    st.text("")
+    st.text("")
     pesquisar = st.button("🔍 Pesquisar")
 
 if pesquisar:
