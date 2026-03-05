@@ -15,7 +15,8 @@ from utils.api_omie import (
     ConsultarRemessas,
     ListarClientes,
     ConsultarProduto,
-    AlterarRemessa
+    AlterarRemessa,
+    limpar_cache
 )
 from utils.sheets import carregar_lotes_validade
 
@@ -37,11 +38,20 @@ st.title("🔍 Cadastro de Rastreabilidade - Remessas")
 if "df_lotes" not in st.session_state:
     st.session_state.df_lotes = carregar_lotes_validade()
 
-if st.button("🔄 Recarregar Planilha"):
-    st.cache_data.clear()
-    st.session_state.df_lotes = carregar_lotes_validade()
-    st.success("Planilha recarregada com sucesso!")
-    st.stop()
+col_btn1, col_btn2 = st.columns(2)
+
+with col_btn1:
+    if st.button("🔄 Recarregar Planilha"):
+        st.cache_data.clear()
+        st.session_state.df_lotes = carregar_lotes_validade()
+        st.success("Planilha recarregada com sucesso!")
+        st.rerun()
+
+with col_btn2:
+    if st.button("🗑️ Limpar Cache API Omie"):
+        limpar_cache()
+        st.success("Cache da API Omie limpo! (TTL: 60s)")
+        st.rerun()
 
 df_lotes = st.session_state.df_lotes
 
@@ -70,6 +80,7 @@ if pesquisar:
         "dados_remessa",
         "remessa_atual",
         "codigo_remessa",
+        "produtos_info_cache"
     ]:
         st.session_state.pop(key, None)
 
@@ -108,7 +119,7 @@ with col2:
         numero_remessa = None
 
 # --------------------------------------------------
-# CONSULTA REMESSA (CACHE MANUAL)
+# CONSULTA REMESSA
 # --------------------------------------------------
 if numero_remessa:
 
@@ -121,6 +132,8 @@ if numero_remessa:
             st.session_state["codigo_remessa"] = codigo_remessa
             st.session_state["dados_remessa"] = ConsultarRemessas(codigo_remessa)
             st.session_state["remessa_atual"] = numero_remessa
+            # Limpa cache de produtos ao trocar de remessa
+            st.session_state.pop("produtos_info_cache", None)
 
     dados_remessa = st.session_state["dados_remessa"]
 
@@ -138,56 +151,101 @@ if numero_remessa:
     )
 
     # --------------------------------------------------
-    # FORM
+    # CARREGAMENTO DOS DADOS (CACHE NO SESSION STATE)
     # --------------------------------------------------
+    
+    # 🔥 Carrega produtos apenas uma vez por remessa
+    if "produtos_info_cache" not in st.session_state:
+        with st.spinner("Carregando produtos... (cache TTL: 60s)"):
+            produtos_info = []
+            
+            print(f"\n{'='*80}")
+            print(f"🚀 INICIANDO CARREGAMENTO DE {len(produtos)} PRODUTOS")
+            print(f"{'='*80}")
+            
+            for idx, item in enumerate(produtos):
+                codigo_item = item.get("nCodProd", "")
+                quantidade = item.get("nQtde", 0)
+
+                print(f"\n[{idx+1}/{len(produtos)}] Consultando produto {codigo_item}...")
+                
+                # Consulta produto (com cache interno de 60s da API)
+                descricao_item, sku_item = ConsultarProduto(codigo_item)
+
+                # Busca dados na planilha
+                linha_lote = df_lotes[df_lotes["Código do Produto"] == sku_item]
+
+                lote_existente = (
+                    linha_lote["LOTE"].iloc[0].strip().lstrip("'")
+                    if not linha_lote.empty and isinstance(linha_lote["LOTE"].iloc[0], str)
+                    else ""
+                )
+
+                validade_existente = (
+                    linha_lote["VALIDADE"].iloc[0]
+                    if not linha_lote.empty
+                    else ""
+                )
+
+                # Tratamento quando a API retorna None
+                label_expander = (
+                    str(descricao_item).strip() 
+                    if descricao_item 
+                    else f"Produto {sku_item if sku_item else codigo_item}"
+                )
+
+                produtos_info.append({
+                    "idx": idx,
+                    "codigo_item": codigo_item,
+                    "quantidade": quantidade,
+                    "descricao_item": descricao_item,
+                    "sku_item": sku_item if sku_item else str(codigo_item),
+                    "lote_existente": lote_existente,
+                    "validade_existente": validade_existente,
+                    "label_expander": label_expander
+                })
+            
+            print(f"\n{'='*80}")
+            print(f"✅ CARREGAMENTO CONCLUÍDO: {len(produtos_info)} produtos")
+            print(f"{'='*80}\n")
+            
+            # Salva no session state para não recarregar
+            st.session_state["produtos_info_cache"] = produtos_info
+    else:
+        produtos_info = st.session_state["produtos_info_cache"]
+        print("💾 Usando produtos do cache do session_state")
+
+    # --------------------------------------------------
+    # FORM (RENDERIZAÇÃO)
+    # --------------------------------------------------
+    
     with st.form("form_rastreabilidade"):
         valores_digitados = {}
 
-        for idx, item in enumerate(produtos):
-            codigo_item = item.get("nCodProd", "")
-            quantidade = item.get("nQtde", 0)
-
-            descricao_item, sku_item = ConsultarProduto(codigo_item)
-
-            linha_lote = df_lotes[df_lotes["Código do Produto"] == sku_item]
-
-            lote_existente = (
-                linha_lote["LOTE"].iloc[0].strip().lstrip("'")
-                if not linha_lote.empty and isinstance(linha_lote["LOTE"].iloc[0], str)
-                else ""
-            )
-
-            validade_existente = (
-                linha_lote["VALIDADE"].iloc[0]
-                if not linha_lote.empty
-                else ""
-            )
-
-            label_expander = str(descricao_item).strip() if descricao_item else f"Produto {sku_item}"
-
-            with st.expander(label_expander, expanded=True):
+        for prod in produtos_info:
+            with st.expander(prod["label_expander"], expanded=True):
                 c1, c2, c3 = st.columns([4, 3, 2])
 
                 with c1:
-                    st.text(f"SKU: {sku_item}")
+                    st.text(f"SKU: {prod['sku_item']}")
 
                 with c2:
                     lote = st.text_input(
                         "Lote",
-                        value=lote_existente,
-                        key=f"lote_{idx}_{numero_remessa}"
+                        value=prod["lote_existente"],
+                        key=f"lote_{prod['idx']}_{numero_remessa}"
                     )
-                    valores_digitados[f"lote_{idx}_{numero_remessa}"] = lote
+                    valores_digitados[f"lote_{prod['idx']}_{numero_remessa}"] = lote
 
                 with c3:
                     validade = st.text_input(
                         "Validade",
-                        value=validade_existente,
-                        key=f"validade_{idx}_{numero_remessa}"
+                        value=prod["validade_existente"],
+                        key=f"validade_{prod['idx']}_{numero_remessa}"
                     )
-                    valores_digitados[f"validade_{idx}_{numero_remessa}"] = validade
+                    valores_digitados[f"validade_{prod['idx']}_{numero_remessa}"] = validade
 
-                st.markdown(f"**Quantidade:** {quantidade}")
+                st.markdown(f"**Quantidade:** {prod['quantidade']}")
 
         st.markdown("---")
 
@@ -254,25 +312,22 @@ if numero_remessa:
                     }
                 })
 
-            AlterarRemessa(
+            resultado = AlterarRemessa(
                 nCodRem,
                 quantidade_caixas,
                 produtos_finalizados,
                 nCodCli
             )
 
-            st.session_state["remessa_salva"] = True
-
-            # limpa cache antes de reiniciar
-            st.cache_data.clear()
-
-            st.rerun()
+            if resultado is not None:
+                st.session_state["remessa_salva"] = True
+                # Limpa cache ao salvar
+                st.cache_data.clear()
+                st.rerun()
+            else:
+                st.error("❌ Erro ao salvar remessa. Verifique os logs no terminal.")
 
     placeholder_sucesso = st.empty()
 
     if st.session_state.pop("remessa_salva", False):
         placeholder_sucesso.success("✅ Remessa alterada com sucesso!")
-
-
-
-            
