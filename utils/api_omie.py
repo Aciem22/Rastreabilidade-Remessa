@@ -10,6 +10,9 @@ APP_SECRET = st.secrets["APP_SECRET"]
 
 
 
+ontem = datetime.now() - timedelta(days=5)
+ontem_formatado = ontem.strftime("%d/%m/%Y")
+
 # ==============================================================================
 # SISTEMA DE CACHE (60 segundos conforme orientação Omie)
 # ==============================================================================
@@ -251,7 +254,8 @@ def ListarRemessas(codigo_cliente: int) -> Dict[str, int]:
                     "nPagina": pagina,
                     "nRegistrosPorPagina": 500,  # Máximo recomendado pelo Omie
                     "cExibirDetalhes": "N",
-                    "nIdCliente": codigo_cliente
+                    "nIdCliente": codigo_cliente,
+                    
                 }
             ]
         }
