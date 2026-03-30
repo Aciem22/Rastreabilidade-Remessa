@@ -9,7 +9,7 @@ APP_KEY = st.secrets["APP_KEY"]
 APP_SECRET = st.secrets["APP_SECRET"]
 
 
-ontem = datetime.now() - timedelta(days=7)
+ontem = datetime.now() - timedelta(days=15)
 ontem_formatado = ontem.strftime("%d/%m/%Y")
 
 # ==============================================================================
