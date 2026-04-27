@@ -9,7 +9,7 @@ APP_KEY = st.secrets["APP_KEY"]
 APP_SECRET = st.secrets["APP_SECRET"]
 
 
-ontem = datetime.now() - timedelta(days=60)
+ontem = datetime.now() - timedelta(days=30)
 ontem_formatado = ontem.strftime("%d/%m/%Y")
 
 # ==============================================================================
@@ -18,7 +18,7 @@ ontem_formatado = ontem.strftime("%d/%m/%Y")
 class CacheOmie:
     """Cache com TTL de 60 segundos para evitar requisições redundantes"""
     
-    def __init__(self, ttl_seconds: int = 300):
+    def __init__(self, ttl_seconds: int = 60):
         self.cache: Dict[str, Dict[str, Any]] = {}
         self.ttl = ttl_seconds
     
@@ -48,7 +48,7 @@ class CacheOmie:
         print("   🗑️  Cache limpo completamente")
 
 # Instância global do cache
-_cache = CacheOmie(ttl_seconds=300)
+_cache = CacheOmie(ttl_seconds=60)
 
 # ==============================================================================
 # CONTROLE DE RATE LIMIT
