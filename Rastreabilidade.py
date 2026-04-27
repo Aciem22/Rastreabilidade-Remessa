@@ -9,6 +9,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 import json
 import tempfile
 import pandas as pd
+from utils.neon_select import carregar_mapa_lotes
 
 from utils.api_omie import (
     ListarRemessas,
@@ -18,7 +19,6 @@ from utils.api_omie import (
     AlterarRemessa,
     limpar_cache
 )
-from utils.sheets import carregar_lotes_validade
 
 # --------------------------------------------------
 # CONFIG
@@ -35,16 +35,25 @@ st.title("🔍 Cadastro de Rastreabilidade - Remessas")
 # --------------------------------------------------
 # PLANILHA (CACHE)
 # --------------------------------------------------
-if "df_lotes" not in st.session_state:
-    st.session_state.df_lotes = carregar_lotes_validade()
+
+if "mapa_lotes" not in st.session_state:
+    st.session_state.mapa_lotes = carregar_mapa_lotes()
+
+mapa_lotes = st.session_state.mapa_lotes
 
 col_btn1, col_btn2 = st.columns(2)
 
 with col_btn1:
-    if st.button("🔄 Recarregar Planilha"):
-        st.cache_data.clear()
-        st.session_state.df_lotes = carregar_lotes_validade()
-        st.success("Planilha recarregada com sucesso!")
+    if st.button("🔄 Recarregar Base"):
+        carregar_mapa_lotes.clear()
+
+        if "mapa_lotes" in st.session_state:
+            del st.session_state["mapa_lotes"]
+
+        if "produtos_info_cache" in st.session_state:
+            del st.session_state["produtos_info_cache"]
+
+        st.success("Base recarregada com sucesso!")
         st.rerun()
 
 with col_btn2:
@@ -52,8 +61,6 @@ with col_btn2:
         limpar_cache()
         st.success("Cache da API Omie limpo! (TTL: 60s)")
         st.rerun()
-
-df_lotes = st.session_state.df_lotes
 
 # --------------------------------------------------
 # INPUT CLIENTE
@@ -156,7 +163,7 @@ if numero_remessa:
     
     # 🔥 Carrega produtos apenas uma vez por remessa
     if "produtos_info_cache" not in st.session_state:
-        with st.spinner("Carregando produtos... (cache TTL: 60s)"):
+        with st.spinner("Carregando produtos..."):
             produtos_info = []
             
             print(f"\n{'='*80}")
@@ -173,19 +180,12 @@ if numero_remessa:
                 descricao_item, sku_item = ConsultarProduto(codigo_item)
 
                 # Busca dados na planilha
-                linha_lote = df_lotes[df_lotes["Código do Produto"] == sku_item]
+                sku_norm = str(sku_item).strip().upper()
 
-                lote_existente = (
-                    linha_lote["LOTE"].iloc[0].strip().lstrip("'")
-                    if not linha_lote.empty and isinstance(linha_lote["LOTE"].iloc[0], str)
-                    else ""
-                )
+                info = mapa_lotes.get(sku_norm,{})
 
-                validade_existente = (
-                    linha_lote["VALIDADE"].iloc[0]
-                    if not linha_lote.empty
-                    else ""
-                )
+                lote_existente = info.get("lote" , "")
+                validade_existente = info.get("validade", "")
 
                 # Tratamento quando a API retorna None
                 label_expander = (
