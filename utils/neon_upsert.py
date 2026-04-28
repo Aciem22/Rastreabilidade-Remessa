@@ -3,6 +3,9 @@ import os
 
 CONN_STRING = os.getenv("NEON_DB_URL")
 
+if not CONN_STRING:
+    raise ValueError("❌ NEON_DB_URL não definida nas variáveis de ambiente")
+
 def upsert_lotes(dados: list[dict]):
     if not dados:
         print("⚠️ Nenhum dado recebido para upsert")
