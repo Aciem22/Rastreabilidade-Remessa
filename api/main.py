@@ -20,6 +20,11 @@ class LoteItem(BaseModel):
 # ENDPOINT
 # ------------------------
 
+@app.get("/")
+def health():
+    return{"status": "ok"}
+
+
 @app.post("/upsert-lotes")
 def upsert_lotes_endpoint(dados:List[LoteItem]):
     try:
