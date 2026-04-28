@@ -1,5 +1,4 @@
 import psycopg2
-import streamlit as st
 import os
 
 CONN_STRING = os.getenv("NEON_DB_URL")
