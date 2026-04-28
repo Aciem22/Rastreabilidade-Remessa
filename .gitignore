@@ -1,3 +1,13 @@
-.streamlit/secrets.toml
-utils/__pycache__
-api/__pycache__
+# Python
+__pycache__/
+*.pyc
+
+# Streamlit
+.streamlit/
+
+# Cache geral
+.cache/
+
+# Ambiente virtual
+venv/
+.env
