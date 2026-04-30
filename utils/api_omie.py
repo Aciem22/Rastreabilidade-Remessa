@@ -18,7 +18,7 @@ ontem_formatado = ontem.strftime("%d/%m/%Y")
 class CacheOmie:
     """Cache com TTL de 60 segundos para evitar requisições redundantes"""
     
-    def __init__(self, ttl_seconds: int = 60):
+    def __init__(self, ttl_seconds: int = 300):
         self.cache: Dict[str, Dict[str, Any]] = {}
         self.ttl = ttl_seconds
     
@@ -48,7 +48,7 @@ class CacheOmie:
         print("   🗑️  Cache limpo completamente")
 
 # Instância global do cache
-_cache = CacheOmie(ttl_seconds=60)
+_cache = CacheOmie(ttl_seconds=300)
 
 # ==============================================================================
 # CONTROLE DE RATE LIMIT
