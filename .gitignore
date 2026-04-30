@@ -11,3 +11,5 @@ __pycache__/
 # Ambiente virtual
 venv/
 .env
+
+teste.py
